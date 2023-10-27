@@ -38,7 +38,6 @@ export const App = () => {
         closeOnClick: true,
         pauseOnHover: true,
       });
-      console.log('dss');
       return;
     }
     console.log(0);
