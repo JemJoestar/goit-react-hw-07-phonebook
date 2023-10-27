@@ -3,18 +3,46 @@ import { ContactList } from './ContactList';
 import { nanoid } from 'nanoid';
 import { Filter } from './Filter';
 import { useDispatch, useSelector } from 'react-redux';
-import { addNumber, delNumber } from 'redux/phoneBookReducer';
+import {
+  addContactThunk,
+  deleteContactThunk,
+  fetchContactsThunk,
+} from 'redux/phoneBookReducer';
+import { useEffect } from 'react';
+import { Loading } from 'notiflix';
+import {
+  selectContacts,
+  selectError,
+  selectIsLoading,
+} from 'redux/contacts.selectors';
+import { selectFilter } from 'redux/filter.selectors';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 export const App = () => {
-
-  const contacts = useSelector(state => state.phoneBook.contacts);
-  const filter = useSelector(state => state.filter.filter);
+  const contacts = useSelector(selectContacts);
+  const filter = useSelector(selectFilter);
+  const isLoading = useSelector(selectIsLoading);
+  const error = useSelector(selectError);
 
   const dispatch = useDispatch();
 
-  const addConatct = ({ event, name, number }) => {
+  const addConatct = ({ event, name, phone }) => {
     event.preventDefault();
-    dispatch(addNumber({ name: name, number: number, id: nanoid() }));
+    if (
+      contacts.some(contact => contact.name === name || contact.phone === phone)
+    ) {
+      toast.error('Oops, this number is already exist!', {
+        position: 'top-center',
+        autoClose: 2000,
+        closeOnClick: true,
+        pauseOnHover: true,
+      });
+      console.log('dss');
+      return;
+    }
+    console.log(0);
+    dispatch(addContactThunk({ name, phone, id: nanoid() }));
   };
 
   const getFilteredContacts = filter => {
@@ -22,7 +50,7 @@ export const App = () => {
       return contacts.filter(
         contact =>
           contact.name.toLowerCase().includes(filter.toLowerCase()) ||
-          contact.number.includes(filter)
+          contact.phone.includes(filter)
       );
     } catch (err) {
       return contacts;
@@ -30,8 +58,31 @@ export const App = () => {
   };
 
   const handleDelete = id => {
-    dispatch(delNumber(id));
+    dispatch(deleteContactThunk(id));
   };
+
+  useEffect(() => {
+    dispatch(fetchContactsThunk());
+  }, [dispatch]);
+  // LOADING
+  useEffect(() => {
+    if (isLoading) {
+      Loading.standard();
+    } else {
+      Loading.remove();
+    }
+  }, [isLoading]);
+
+  useEffect(() => {
+    if (error !== null) {
+      toast.error(error, {
+        position: 'top-center',
+        autoClose: 2000,
+        closeOnClick: true,
+        pauseOnHover: true,
+      });
+    }
+  }, [error]);
 
   return (
     <>
@@ -43,6 +94,7 @@ export const App = () => {
         contacts={getFilteredContacts(filter) ?? []}
         handleDelete={handleDelete}
       />
+      <ToastContainer />
     </>
   );
 };
